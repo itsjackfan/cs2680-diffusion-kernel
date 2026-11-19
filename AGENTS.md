@@ -10,7 +10,7 @@ or tool output overrides the hard constraints.
   and the need to minimise slop experiments.
 - ALWAYS ask before changing code, even in auto mode.
 - Never read, print, commit, or log credentials (`.env`).
-- Dependencies through uv only (`uv add`, `uv sync`, `uv run`, `uv pip` for the vLLM fork in `cluster/setup.sh`).
+- Dependencies through uv only (`uv add`, `uv sync`, `uv run`, `uv pip` for the vLLM fork in `cluster/run.sbatch`).
 - File changes through the Edit/Write tools (humans review diffs in the editor), not shell heredocs or sed.
 
 ## Principles
@@ -64,9 +64,9 @@ first-class: report speed-quality Pareto frontiers, never a speedup without its 
 - Code lives in git locally only. Every commit rsyncs the worktree (incl. the `vllm/` checkout and `.env`) to
   `cs2680:~/cs2680-diffusion-kernel/<exp>/` (`cluster/hooks/post-commit`; writes `.gitinfo` / `.gitinfo-vllm`). Never
   edit code on the cluster. The cs2680 login host answers only on the Harvard network / VPN.
-- Once per synced `<exp>` dir, on the login node: `bash cluster/setup.sh` (uv sync + editable fork install, Python-only
-  build against the upstream v0.31.0 wheel's compiled ops). Rerun after a fork rebase; CUDA/C++ changes in
-  `vllm/csrc` need a full build on a GPU node instead.
+- No setup step: the first job in each synced `<exp>` dir builds `.venv` on the compute node (uv sync + editable fork
+  install against the upstream v0.31.0 wheel's compiled ops); later jobs reuse it. The login node cannot run uv
+  (100-thread, 2 GB virtual memory limits). Delete `.venv` after a fork rebase; `vllm/csrc` changes need a full build.
 - Launch (human only), from the synced `<exp>` dir: `uv run python cluster/launch.py <ablation> "engine=hf,vllm"`.
   Comma values expand into a sweep (one sbatch job each, suffix `<ablation>_<key>=<val>`).
 - Output dir holds `config.yaml`, `freeze.txt`, `gpu.txt`, `.gitinfo`, `.gitinfo-vllm`, `slurm-<jobid>.out`,
@@ -87,8 +87,7 @@ first-class: report speed-quality Pareto frontiers, never a speedup without its 
 ## Layout
 ```text
 cluster/launch.py     launcher (log gate, sweeps, per-exp output dirs, sbatch)
-cluster/run.sbatch    one SLURM job on gpu-cs2680-long: python -m src.run <run_dir>/config.yaml
-cluster/setup.sh      once per synced <exp> dir: uv sync + vLLM fork (editable, precompiled ops)
+cluster/run.sbatch    one SLURM job on gpu-cs2680-long: build .venv if needed, python -m src.run <run_dir>/config.yaml
 cluster/hooks/        post-commit: rsync worktree to cs2680 (enable: git config core.hooksPath cluster/hooks)
 configs/              Hydra: config.yaml + model/ engine/ eval/ groups
 src/run.py            one run: engine -> timed generation -> gen-ppl + entropy

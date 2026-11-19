@@ -6,7 +6,7 @@ dst=cs2680-diffusion-kernel/$b
 printf '%s %s\n' "$b" "$(git rev-parse HEAD)" > .gitinfo
 git -C vllm rev-parse HEAD > .gitinfo-vllm 2>/dev/null
 # leading / anchors to repo root; .git (dir at root, file in vllm/) never syncs
-rsync -az --delete --exclude .git --exclude /.venv --exclude /outputs --exclude __pycache__ --exclude .pytest_cache \
+rsync -az --delete --exclude .git --exclude /.venv --exclude /.venv.lock --exclude /outputs --exclude __pycache__ --exclude .pytest_cache \
   --exclude '/vllm/build' --exclude '/vllm/vllm/*.so' -e "ssh -o BatchMode=yes" \
   --rsync-path="mkdir -p $dst && rsync" ./ "cs2680:$dst/" \
   || echo "post-commit: sync to cs2680 failed (VPN / ssh cs2680?); rerun cluster/hooks/post-commit"

@@ -16,8 +16,9 @@ uv sync && uv run pytest -q                # local: Python 3.12 .venv, mocked CP
 git config core.hooksPath cluster/hooks    # local, once per clone (shared by worktrees)
 cp .env.example .env                       # fill in keys (git-ignored, synced)
 curl -LsSf https://astral.sh/uv/install.sh | sh   # on cs2680, once
-bash cluster/setup.sh                      # on cs2680, once per synced <exp> dir: .venv + editable vLLM fork
 ```
+
+The first job in each synced `<exp>` dir builds `.venv` on its compute node (about 5 minutes); later jobs reuse it.
 
 Pull results when needed: `rsync -az cs2680:cs2680-diffusion-kernel/<exp>/outputs/<exp>/<ablation>/ outputs/<exp>/<ablation>/`
 

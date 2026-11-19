@@ -224,5 +224,6 @@ __marimo__/
 /outputs/
 .gitinfo
 .gitinfo-vllm
+.venv.lock
 .claude/worktrees/
 .claude/settings.local.json
