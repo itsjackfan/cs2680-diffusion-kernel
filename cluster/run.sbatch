@@ -19,7 +19,8 @@ WHEEL=https://files.pythonhosted.org/packages/e1/98/841d1328827dc082492fcbb0f57b
   flock 9
   uv sync --inexact  # --inexact keeps the fork, which pyproject does not list
   uv run --no-sync python -c "import vllm" 2>/dev/null \
-    || VLLM_USE_PRECOMPILED=1 VLLM_PRECOMPILED_WHEEL_LOCATION=$WHEEL uv pip install -e ./third_party/vllm
+    || SETUPTOOLS_SCM_PRETEND_VERSION=0.31.0 VLLM_USE_PRECOMPILED=1 VLLM_PRECOMPILED_WHEEL_LOCATION=$WHEEL \
+       uv pip install -e ./third_party/vllm  # PRETEND_VERSION: the synced copy has no .git for setuptools-scm
 ) 9> .venv.lock
 D=$(dirname "$1")
 nvidia-smi --query-gpu=name,driver_version,memory.total --format=csv > "$D/gpu.txt"
