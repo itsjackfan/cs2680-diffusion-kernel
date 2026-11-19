@@ -1,0 +1,6 @@
+# Unconditional samples -> gen-ppl under an AR judge + unigram entropy (Duo protocol), timed per batch
+n_samples: 64
+batch_size: 8
+steps: 1024                # ancestral steps; +1 noise-removal forward
+judge: gpt2-large
+judge_batch_size: 8

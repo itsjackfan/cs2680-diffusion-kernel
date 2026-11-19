@@ -1,0 +1,7 @@
+_target_: src.engine.VLLMEngine
+llm:                              # vllm.LLM kwargs (max_model_len / max_num_batched_tokens derive from model.length)
+  dtype: bfloat16
+  max_num_seqs: 8                 # fp64 posterior is ~2 GB per in-flight 1024-token canvas
+  gpu_memory_utilization: 0.5     # leaves room for the gen-ppl judge in the same process
+  enforce_eager: true             # Duo forward takes per-request segment lengths (host list): no CUDA graphs yet
+  enable_prefix_caching: false
