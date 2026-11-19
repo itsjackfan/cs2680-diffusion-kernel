@@ -7,6 +7,8 @@
       "Bash(ssh cs2680 sbatch:*)",
       "Bash(python cluster/launch.py:*)",
       "Bash(uv run python cluster/launch.py:*)",
+      "Bash(uv run --no-project --with hydra-core python cluster/launch.py:*)",
+      "Bash(ssh cs2680:*launch*)",
       "Bash(python -m src.run:*)",
       "Bash(uv run python -m src.run:*)",
       "Read(./.env)",

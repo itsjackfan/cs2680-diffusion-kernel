@@ -1,4 +1,5 @@
-"""SLURM launcher. Humans only: `uv run python cluster/launch.py <name> "<hydra overrides>"`.
+"""SLURM launcher. Humans only, on the login node:
+`uv run --no-project --with hydra-core python cluster/launch.py <name> "<hydra overrides>"`.
 Comma-separated override values (`engine=hf,vllm`) expand into a sweep; one sbatch job per config."""
 from pathlib import Path
 import itertools

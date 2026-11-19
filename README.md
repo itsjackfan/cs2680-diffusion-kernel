@@ -28,14 +28,16 @@ Pull results when needed: `rsync -az cs2680:cs2680-diffusion-kernel/<exp>/output
 2. Add a line containing `` `<ablation>` `` to [EXPERIMENT_LOG.md](EXPERIMENT_LOG.md) saying what it tests. The launcher refuses unlogged names.
 3. Commit (syncs), then launch on the login node:
    ```bash
-   cd ~/cs2680-diffusion-kernel/<exp> && uv run python cluster/launch.py <ablation> "<hydra overrides>"
+   cd ~/cs2680-diffusion-kernel/<exp>
+   alias launch='uv run --no-project --with hydra-core python cluster/launch.py'  # login node: hydra-only env
+   launch <ablation> "<hydra overrides>"
    ```
    Comma values sweep (`engine=hf,vllm`), one sbatch job each.
 
 Examples:
 - Smoke, both engines (`SBATCH_TIMELIMIT` overrides `cluster/run.sbatch`):
-  `SBATCH_TIMELIMIT=00:45:00 uv run python cluster/launch.py baseline-smoke "engine=hf,vllm eval.n_samples=16 eval.steps=64"`
-- Baseline at Duo's 1024 steps: `uv run python cluster/launch.py duo-baseline "engine=hf,vllm"`
+  `SBATCH_TIMELIMIT=00:45:00 launch baseline-smoke "engine=hf,vllm eval.n_samples=16 eval.steps=64"`
+- Baseline at Duo's 1024 steps: `launch duo-baseline "engine=hf,vllm"`
 
 ## Where things go
 

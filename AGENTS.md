@@ -67,7 +67,8 @@ first-class: report speed-quality Pareto frontiers, never a speedup without its 
 - No setup step: the first job in each synced `<exp>` dir builds `.venv` on the compute node (uv sync + editable fork
   install against the upstream v0.31.0 wheel's compiled ops); later jobs reuse it. The login node cannot run uv
   (100-thread, 2 GB virtual memory limits). Delete `.venv` after a fork rebase; `vllm/csrc` changes need a full build.
-- Launch (human only), from the synced `<exp>` dir: `uv run python cluster/launch.py <ablation> "engine=hf,vllm"`.
+- Launch (human only), from the synced `<exp>` dir: `uv run --no-project --with hydra-core python cluster/launch.py <ablation> "engine=hf,vllm"`
+  (hydra-only env: the login node cannot install the full project).
   Comma values expand into a sweep (one sbatch job each, suffix `<ablation>_<key>=<val>`).
 - Output dir holds `config.yaml`, `freeze.txt`, `gpu.txt`, `.gitinfo`, `.gitinfo-vllm`, `slurm-<jobid>.out`,
   `metrics.jsonl`, `samples.jsonl`, `wandb/`.
