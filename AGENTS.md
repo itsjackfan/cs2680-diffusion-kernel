@@ -25,7 +25,7 @@ first-class: report speed-quality Pareto frontiers, never a speedup without its 
 ## Experiments
 `<exp>` = short descriptive name of the hypothesis/goal, used everywhere:
 - Worktree + branch `<exp>`: `git worktree add ../<exp> -b <exp>`; kernel work also branches the fork:
-  `git -C ../<exp>/vllm checkout -b <exp>` (off `cs2680`).
+  `git -C ../<exp>/third_party/vllm checkout -b <exp>` (off `cs2680`).
 - Outputs `outputs/<exp>/<ablation>/` inside the synced `<exp>` dir on the cluster. Never shared, never overwritten.
 - WandB run name `<exp>/<ablation>`, group `<exp>`.
 - One change per ablation. More ablations > bundled changes.
@@ -54,19 +54,20 @@ first-class: report speed-quality Pareto frontiers, never a speedup without its 
   kernel or engine change is checked against it (`tests/test_vllm_duo.py` pattern: same weights, same inputs).
 - Engines (`src/engine.py`) share one interface: `generate(n, steps) -> tokens [n, L]`, canvas incl. BOS pinned at
   position 0. A new engine/sampler is a new class + `configs/engine/<x>.yaml` with `_target_`, never a flag.
-- vLLM fork (`vllm/`, branch `cs2680`, based on v0.31.0): Duo lives in `vllm/vllm/model_executor/models/duo.py`
+- vLLM fork (`third_party/vllm/`, branch `cs2680`, based on v0.31.0; not at the repo root, where it would shadow
+  the installed `vllm` package): Duo lives in `third_party/vllm/vllm/model_executor/models/duo.py`
   (model, `DuoModelState`, `DuoSampler`); registration in `models/{registry,config}.py` and
   `transformers_utils/{config.py,configs/}`. Kernel hooks are marked `NOTE`: `DuoBlock.forward` (attention),
   `DuoSampler._denoise` (vocab-sized sampling ops).
 - Hotswap through Hydra groups `configs/{model,engine,eval}/<x>.yaml`.
 
 ## Runs
-- Code lives in git locally only. Every commit rsyncs the worktree (incl. the `vllm/` checkout and `.env`) to
+- Code lives in git locally only. Every commit rsyncs the worktree (incl. the `third_party/vllm/` checkout and `.env`) to
   `cs2680:~/cs2680-diffusion-kernel/<exp>/` (`cluster/hooks/post-commit`; writes `.gitinfo` / `.gitinfo-vllm`). Never
   edit code on the cluster. The cs2680 login host answers only on the Harvard network / VPN.
 - No setup step: the first job in each synced `<exp>` dir builds `.venv` on the compute node (uv sync + editable fork
   install against the upstream v0.31.0 wheel's compiled ops); later jobs reuse it. The login node cannot run uv
-  (100-thread, 2 GB virtual memory limits). Delete `.venv` after a fork rebase; `vllm/csrc` changes need a full build.
+  (100-thread, 2 GB virtual memory limits). Delete `.venv` after a fork rebase; `third_party/vllm/csrc` changes need a full build.
 - Launch (human only), from the synced `<exp>` dir: `uv run --no-project --with hydra-core python cluster/launch.py <ablation> "engine=hf,vllm"`
   (hydra-only env: the login node cannot install the full project).
   Comma values expand into a sweep (one sbatch job each, suffix `<ablation>_<key>=<val>`).
@@ -93,7 +94,7 @@ cluster/hooks/        post-commit: rsync worktree to cs2680 (enable: git config 
 configs/              Hydra: config.yaml + model/ engine/ eval/ groups
 src/run.py            one run: engine -> timed generation -> gen-ppl + entropy
 src/{duo,engine,evals,logger,config}.py
-vllm/                 git submodule: vLLM fork (branch cs2680) with the Duo port
+third_party/vllm/     git submodule: vLLM fork (branch cs2680) with the Duo port
 tests/                shape + smoke tests, mocked, CPU-only (tests/test_vllm_duo.py runs the port without vLLM)
 scripts/tmp_<exp>/    throwaway scripts (delete after use)
 results/              small reported tables/plots only

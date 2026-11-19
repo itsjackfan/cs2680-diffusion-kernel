@@ -1,6 +1,6 @@
 """Decode engines: same interface, `generate(n, steps) -> tokens [n, L]` (canvas incl. pinned BOS at position 0).
-HFEngine = plain-PyTorch reference (src/duo.py); VLLMEngine = the vLLM fork (vllm/, Duo port in
-vllm/vllm/model_executor/models/duo.py). A new engine is a new class here + configs/engine/<x>.yaml."""
+HFEngine = plain-PyTorch reference (src/duo.py); VLLMEngine = the vLLM fork (third_party/vllm/, Duo port in
+third_party/vllm/vllm/model_executor/models/duo.py). A new engine is a new class here + configs/engine/<x>.yaml."""
 import torch
 
 from src.duo import load as load_duo, sample

@@ -3,7 +3,7 @@ name = "dk"
 version = "0.1.0"
 description = "Profiling and fused kernels for uniform-state diffusion LMs, served through a vLLM fork, run on the CS2680 cluster (SLURM)"
 requires-python = "==3.12.*"
-# torch/transformers pinned to what the vLLM fork (v0.31.0, vllm/requirements/{cuda,common}.txt) needs; the fork itself
+# torch/transformers pinned to what the vLLM fork (v0.31.0, third_party/vllm/requirements/{cuda,common}.txt) needs; the fork itself
 # is installed into .venv by cluster/run.sbatch (Linux + CUDA only), not listed here
 dependencies = ["torch==2.13.0", "transformers>=5.10.4,<5.18.0", "einops", "hydra-core", "wandb", "safetensors",
                 "huggingface_hub"]

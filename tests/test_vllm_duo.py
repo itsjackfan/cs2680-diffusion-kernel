@@ -1,4 +1,4 @@
-"""vLLM Duo port (vllm/vllm/model_executor/models/duo.py) vs the reference src/duo.py, CPU, without a vLLM install:
+"""vLLM Duo port (third_party/vllm/vllm/model_executor/models/duo.py) vs the reference src/duo.py, CPU, without a vLLM install:
 the vLLM symbols duo.py imports are stubbed, the module is loaded by path. Engine wiring is covered by the smoke run.
 Dims: B batch, L canvas length, V vocab, N flattened tokens."""
 import importlib.util
@@ -14,7 +14,7 @@ from torch import nn
 from src import duo
 from tests.conftest import TINY, tiny_dit
 
-PORT = Path(__file__).resolve().parents[1] / "vllm/vllm/model_executor/models/duo.py"
+PORT = Path(__file__).resolve().parents[1] / "third_party/vllm/vllm/model_executor/models/duo.py"
 V, L = TINY["vocab_size"], 8
 
 

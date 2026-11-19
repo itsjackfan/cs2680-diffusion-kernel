@@ -1,6 +1,6 @@
 """Reference Duo (s-sahoo/duo): DiT denoiser + uniform-state ancestral sampler, in plain PyTorch.
 Ported from the checkpoint's model.py (no flash_attn) and github.com/s-sahoo/duo trainer_base.py. This is the numerical
-oracle for the vLLM port (vllm/vllm/model_executor/models/duo.py): keep the math identical, never optimize it here.
+oracle for the vLLM port (third_party/vllm/vllm/model_executor/models/duo.py): keep the math identical, never optimize it here.
 Dims: B batch, L canvas length, V vocab, D hidden, H heads, K head dim, C cond dim, F sinusoid freqs."""
 import json
 import math

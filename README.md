@@ -6,12 +6,12 @@ CS2680 cluster (SLURM), tracked in WandB. Proposal: [CS2680_Proposal.pdf](CS2680
 
 ## Setup
 
-Code is edited and committed locally only. `cluster/hooks/post-commit` rsyncs each worktree (incl. the `vllm/`
+Code is edited and committed locally only. `cluster/hooks/post-commit` rsyncs each worktree (incl. the `third_party/vllm/`
 submodule checkout and `.env`) to `cs2680:~/cs2680-diffusion-kernel/<exp>/` on every commit; no git on the cluster.
 Needs `Host cs2680` in `~/.ssh/config` and the Harvard VPN.
 
 ```bash
-git submodule update --init                # vllm/ = fork at branch cs2680 (v0.31.0 + Duo port)
+git submodule update --init                # third_party/vllm/ = fork at branch cs2680 (v0.31.0 + Duo port)
 uv sync && uv run pytest -q                # local: Python 3.12 .venv, mocked CPU-only tests (no vLLM needed)
 git config core.hooksPath cluster/hooks    # local, once per clone (shared by worktrees)
 cp .env.example .env                       # fill in keys (git-ignored, synced)

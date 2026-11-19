@@ -1,5 +1,5 @@
 [submodule "vllm"]
-	path = vllm
+	path = third_party/vllm
 	url = https://github.com/itsjackfan/vllm.git
 	branch = cs2680
 	shallow = true

@@ -1,12 +1,12 @@
 #!/bin/bash
-# Mirror this worktree (incl. the vllm/ submodule checkout and .env) to cs2680:~/cs2680-diffusion-kernel/<branch>/
+# Mirror this worktree (incl. the third_party/vllm submodule checkout and .env) to cs2680:~/cs2680-diffusion-kernel/<branch>/
 # after every commit. No git on the cluster: .gitinfo / .gitinfo-vllm carry branch + commits for the launcher.
 b=$(git rev-parse --abbrev-ref HEAD)
 dst=cs2680-diffusion-kernel/$b
 printf '%s %s\n' "$b" "$(git rev-parse HEAD)" > .gitinfo
-git -C vllm rev-parse HEAD > .gitinfo-vllm 2>/dev/null
-# leading / anchors to repo root; .git (dir at root, file in vllm/) never syncs
+git -C third_party/vllm rev-parse HEAD > .gitinfo-vllm 2>/dev/null
+# leading / anchors to repo root; .git (dir at root, file in third_party/vllm/) never syncs
 rsync -az --delete --exclude .git --exclude /.venv --exclude /.venv.lock --exclude /outputs --exclude __pycache__ --exclude .pytest_cache \
-  --exclude '/vllm/build' --exclude '/vllm/vllm/*.so' -e "ssh -o BatchMode=yes" \
+  --exclude '/third_party/vllm/build' --exclude '/third_party/vllm/vllm/*.so' -e "ssh -o BatchMode=yes" \
   --rsync-path="mkdir -p $dst && rsync" ./ "cs2680:$dst/" \
   || echo "post-commit: sync to cs2680 failed (VPN / ssh cs2680?); rerun cluster/hooks/post-commit"
