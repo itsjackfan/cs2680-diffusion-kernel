@@ -5,8 +5,15 @@ b=$(git rev-parse --abbrev-ref HEAD)
 dst=cs2680-diffusion-kernel/$b
 printf '%s %s\n' "$b" "$(git rev-parse HEAD)" > .gitinfo
 git -C third_party/vllm rev-parse HEAD > .gitinfo-vllm 2>/dev/null
-# leading / anchors to repo root; .git (dir at root, file in third_party/vllm/) never syncs
-rsync -az --delete --exclude .git --exclude /.venv --exclude /.venv.lock --exclude /outputs --exclude __pycache__ --exclude .pytest_cache \
-  --exclude '/third_party/vllm/build' --exclude '/third_party/vllm/vllm/*.so' -e "ssh -o BatchMode=yes" \
-  --rsync-path="mkdir -p $dst && rsync" ./ "cs2680:$dst/" \
+# leading / anchors to repo root; .git (dir at root, file in third_party/vllm/) never syncs.
+# F excludes: files the fork install writes into its tree on the cluster (third_party/vllm/.gitignore); excluded
+# paths are also never deleted, so a sync keeps the install intact.
+F=/third_party/vllm
+rsync -az --delete --exclude .git --exclude /.venv --exclude /.venv.lock --exclude /outputs --exclude __pycache__ \
+  --exclude .pytest_cache --exclude "$F/build" --exclude "$F/**.so" --exclude "$F/vllm/_version.py" \
+  --include "$F/vllm/vllm_flash_attn/__init__.py" --include "$F/vllm/vllm_flash_attn/flash_attn_interface.py" \
+  --exclude "$F/vllm/vllm_flash_attn/*" --exclude "$F/vllm/third_party/triton_kernels" \
+  --exclude "$F/vllm/third_party/flashmla/flash_mla_interface.py" --exclude "$F/vllm/third_party/deep_gemm" \
+  --exclude "$F/vllm/third_party/fmha_sm100" --exclude "$F/vllm/third_party/tml_fa4" --exclude "$F/vllm/vllm-rs" \
+  -e "ssh -o BatchMode=yes" --rsync-path="mkdir -p $dst && rsync" ./ "cs2680:$dst/" \
   || echo "post-commit: sync to cs2680 failed (VPN / ssh cs2680?); rerun cluster/hooks/post-commit"
