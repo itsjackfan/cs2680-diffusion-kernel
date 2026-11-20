@@ -9,4 +9,4 @@
 Failed arms: branch, code changes, why it failed. -->
 
 ## baseline (branch: baseline)
-- 2026-11-19 16:59 `baseline-smoke`: baseline smoke on Duo infra + kernels
+- 2026-11-19 16:59 `baseline-smoke` `baseline-smoke-vllm`: baseline smoke on Duo infra + kernels
