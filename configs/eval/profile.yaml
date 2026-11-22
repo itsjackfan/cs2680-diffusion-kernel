@@ -1,0 +1,6 @@
+# genppl + per-region GPU profile (src/profiling.py) of one generate(batch_size, profile_steps) call
+defaults:
+  - genppl
+  - _self_
+
+profile_steps: 4

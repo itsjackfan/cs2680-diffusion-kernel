@@ -59,6 +59,8 @@ first-class: report speed-quality Pareto frontiers, never a speedup without its 
   (model, `DuoModelState`, `DuoSampler`); registration in `models/{registry,config}.py` and
   `transformers_utils/{config.py,configs/}`. Kernel hooks are marked `NOTE`: `DuoBlock.forward` (attention),
   `DuoSampler._denoise` (vocab-sized sampling ops).
+- Profiled code carries `torch.profiler.record_function` region labels (`adaln`, `attention`, `mlp`, `output_proj`,
+  `sampling`) in both `src/duo.py` and the fork's `duo.py`. Keep the same labels on any replacement kernel.
 - Hotswap through Hydra groups `configs/{model,engine,eval}/<x>.yaml`.
 
 ## Runs
@@ -72,7 +74,7 @@ first-class: report speed-quality Pareto frontiers, never a speedup without its 
   (hydra-only env: the login node cannot install the full project).
   Comma values expand into a sweep (one sbatch job each, suffix `<ablation>_<key>=<val>`).
 - Output dir holds `config.yaml`, `freeze.txt`, `gpu.txt`, `.gitinfo`, `.gitinfo-vllm`, `slurm-<jobid>.out`,
-  `metrics.jsonl`, `samples.jsonl`, `wandb/`.
+  `metrics.jsonl`, `samples.jsonl`, `wandb/`, and `trace.json` (Chrome trace) for `eval=profile`.
 - WandB project `cs2680-diffusion-kernel`.
 
 ## Metrics (fixed names; `Logger` rejects anything not prefixed `train/`, `test/` or `perf/`)
@@ -84,6 +86,11 @@ first-class: report speed-quality Pareto frontiers, never a speedup without its 
 | `perf/latency_s` | wall time per `generate(batch_size, steps)` call |
 | `perf/step_ms` | `latency_s / (steps + 1)`: one denoising forward + sampling step |
 | `perf/peak_mem_gb` | `torch.cuda.max_memory_allocated` over timed generation (vLLM: includes its pre-allocation) |
+| `perf/<region>/ms` | GPU time per denoising step in a labelled region (`eval=profile`; regions in `src/profiling.py:REGIONS`) |
+| `perf/<region>/{tflops,gbps,intensity}` | analytic ideal-fused FLOPs and bytes of the region / its measured time |
+| `perf/<region>/memory_bound` | 1 if the region's intensity is below the measured ridge point (`peak_tflops / peak_gbps`) |
+| `perf/peak_tflops`, `perf/peak_gbps` | measured bf16 matmul and device-copy peaks of this GPU |
+| `perf/overhead_ms` | `step_ms` minus the summed region times: embedding, scheduler, launches, unlabelled ops |
 | `train/*` | reserved for training-kernel experiments (loss, step time) |
 
 ## Layout

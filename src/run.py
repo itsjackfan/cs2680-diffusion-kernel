@@ -11,6 +11,7 @@ import torch
 from hydra.utils import instantiate
 from omegaconf import OmegaConf
 
+from src import profiling
 from src.evals import entropy, gen_ppl, load_judge
 from src.logger import Logger
 
@@ -39,6 +40,14 @@ def main(cfg):
     sync(cfg.device)
     dt = time.perf_counter() - t0
     peak_gb = torch.cuda.max_memory_allocated() / 2**30 if cfg.device == "cuda" else 0.0
+    step_ms = 1000 * dt / (n_batches * (ev.steps + 1))
+
+    prof = {}
+    if "profile_steps" in ev:
+        total_ms = profiling.region_times(lambda: engine.generate(ev.batch_size, ev.profile_steps), cfg.device,
+                                          trace=str(run_dir / "trace.json"))
+        region_ms = {r: total_ms[r] / (ev.profile_steps + 1) for r in profiling.REGIONS}
+        prof = profiling.metrics(cfg.model, ev.batch_size, region_ms, step_ms, *profiling.peaks(cfg.device))
 
     tok, judge = load_judge(ev.judge, cfg.device)
     texts = tok.batch_decode(tokens_NL.clamp_max(tok.vocab_size - 1))  # Duo's extra id 50257 decodes as EOS
@@ -53,8 +62,9 @@ def main(cfg):
         "perf/samples_per_s": n / dt,
         "perf/tokens_per_s": n * L / dt,
         "perf/latency_s": dt / n_batches,
-        "perf/step_ms": 1000 * dt / (n_batches * (ev.steps + 1)),
+        "perf/step_ms": step_ms,
         "perf/peak_mem_gb": peak_gb,
+        **prof,
     }, step=0)
     logger.finish()
 

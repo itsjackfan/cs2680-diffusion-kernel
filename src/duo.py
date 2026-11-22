@@ -12,6 +12,7 @@ import torch.nn.functional as F
 from einops import rearrange
 from huggingface_hub import snapshot_download
 from safetensors.torch import load_file
+from torch.profiler import record_function  # region labels for src/profiling.py; no effect outside a profile
 
 
 class LayerNorm(nn.Module):
@@ -53,13 +54,18 @@ class Block(nn.Module):
         self.adaLN_modulation = nn.Linear(cond_dim, 6 * dim)
 
     def forward(self, x_BLD, cos_LK, sin_LK, c_BC):
-        shift1, scale1, gate1, shift2, scale2, gate2 = self.adaLN_modulation(c_BC)[:, None].chunk(6, -1)
-        h_BLD = self.norm1(x_BLD) * (1 + scale1) + shift1
-        q, k, v = rearrange(self.attn_qkv(h_BLD), "b l (three h k) -> three b l h k", three=3, h=self.n_heads)
-        q, k = rotary(q, cos_LK, sin_LK).to(v.dtype), rotary(k, cos_LK, sin_LK).to(v.dtype)
-        a_BHLK = F.scaled_dot_product_attention(q.transpose(1, 2), k.transpose(1, 2), v.transpose(1, 2))
-        x_BLD = x_BLD + gate1 * self.attn_out(rearrange(a_BHLK, "b h l k -> b l (h k)"))
-        return x_BLD + gate2 * self.mlp(self.norm2(x_BLD) * (1 + scale2) + shift2)
+        with record_function("adaln"):
+            shift1, scale1, gate1, shift2, scale2, gate2 = self.adaLN_modulation(c_BC)[:, None].chunk(6, -1)
+            h_BLD = self.norm1(x_BLD) * (1 + scale1) + shift1
+        with record_function("attention"):
+            q, k, v = rearrange(self.attn_qkv(h_BLD), "b l (three h k) -> three b l h k", three=3, h=self.n_heads)
+            q, k = rotary(q, cos_LK, sin_LK).to(v.dtype), rotary(k, cos_LK, sin_LK).to(v.dtype)
+            a_BHLK = F.scaled_dot_product_attention(q.transpose(1, 2), k.transpose(1, 2), v.transpose(1, 2))
+            x_BLD = x_BLD + gate1 * self.attn_out(rearrange(a_BHLK, "b h l k -> b l (h k)"))
+        with record_function("adaln"):
+            h_BLD = self.norm2(x_BLD) * (1 + scale2) + shift2
+        with record_function("mlp"):
+            return x_BLD + gate2 * self.mlp(h_BLD)
 
 
 class FinalLayer(nn.Module):
@@ -69,6 +75,7 @@ class FinalLayer(nn.Module):
         self.linear = nn.Linear(dim, vocab_size)
         self.adaLN_modulation = nn.Linear(cond_dim, 2 * dim)
 
+    @record_function("output_proj")
     def forward(self, x_BLD, c_BC):
         shift, scale = self.adaLN_modulation(c_BC)[:, None].chunk(2, -1)
         return self.linear(self.norm_final(x_BLD) * (1 + scale) + shift)
@@ -143,8 +150,10 @@ def ancestral_step(dit, x_BL, t, s, noise_eps):
     alpha_t = alpha(torch.tensor(t, dtype=torch.float64, device=x_BL.device), noise_eps)
     alpha_s = alpha(torch.tensor(s, dtype=torch.float64, device=x_BL.device), noise_eps) if s > 0 else alpha_t ** 0
     sigma_B = (-alpha_t.log()).float().expand(x_BL.shape[0])
-    p_x0_BLV = dit(x_BL, sigma_B).double().log_softmax(-1).exp()
-    return sample_categorical(posterior(p_x0_BLV, x_BL, alpha_s, alpha_t))
+    logits_BLV = dit(x_BL, sigma_B)
+    with record_function("sampling"):
+        p_x0_BLV = logits_BLV.double().log_softmax(-1).exp()
+        return sample_categorical(posterior(p_x0_BLV, x_BL, alpha_s, alpha_t))
 
 
 @torch.no_grad()

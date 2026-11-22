@@ -24,7 +24,7 @@ def tiny_dit():
 def cfg(tmp_path):
     cfg = compose(["device=cpu", "wandb.mode=disabled", "engine=hf", "model.length=8",
                    f"model.vocab_size={TINY['vocab_size']}", f"model.bos_id={EOS}", "eval.n_samples=4",
-                   "eval.batch_size=2", "eval.steps=3"])
+                   "eval.batch_size=2", "eval.steps=3"] + [f"model.{k}={v}" for k, v in TINY.items() if k != "vocab_size"])
     cfg.name, cfg.run_dir = "test", str(tmp_path / "run")
     cfg.git.branch, cfg.git.commit, cfg.git.dirty = "test-exp", "abc123", False
     return cfg

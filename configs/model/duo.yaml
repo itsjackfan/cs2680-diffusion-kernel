@@ -6,3 +6,8 @@ vocab_size: 50258
 bos_id: 50256       # GPT-2 <|endoftext|>, the BOS of Duo's wrapped OWT training chunks
 t_eps: 1.0e-5       # sampling times linspace(1, t_eps, steps + 1)
 noise_eps: 1.0e-3   # log-linear schedule alpha_t = 1 - (1 - noise_eps) t
+# architecture (= checkpoint config.json); read only by the analytic cost model in src/profiling.py
+hidden_dim: 768
+n_heads: 12
+n_blocks: 12
+cond_dim: 128
