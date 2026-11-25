@@ -5,10 +5,12 @@ Cost model = ideal fused traffic: each region reads its inputs and bf16 weights 
 (2 bytes per element; the posterior and categorical draw add no traffic). So intensity is an upper bound and
 achieved GB/s / peak GB/s is the headroom a fused kernel could recover. Costs are per denoising step over n canvases.
 Dims: n canvases, L canvas length, N = n * L tokens, D hidden, C cond dim, V vocab."""
+import bisect
+import json
 import time
+from pathlib import Path
 
 import torch
-from torch.autograd import DeviceType
 from torch.profiler import ProfilerActivity, profile
 
 REGIONS = ("adaln", "attention", "mlp", "output_proj", "sampling")
@@ -30,19 +32,35 @@ def region_costs(m, n):
     return costs
 
 
-def region_times(fn, device, trace=None):
-    """Run fn under the profiler -> {region: total ms} (device time on cuda, cpu time on cpu)."""
+def gpu_region_ms(trace_events):
+    """Kernel time inside each region's GPU-side label window (chrome-trace gpu_user_annotation events).
+    The CPU-side events' child-kernel totals double-counted kernels in vLLM at batch 8, so they are not used."""
+    k = sorted((e["ts"], e["ts"] + e["dur"]) for e in trace_events if e.get("cat") == "kernel")
+    starts = [a for a, _ in k]
+    ms = dict.fromkeys(REGIONS, 0.0)
+    for e in trace_events:
+        if e.get("cat") == "gpu_user_annotation" and e["name"] in ms:
+            a, b = e["ts"], e["ts"] + e["dur"]
+            i = bisect.bisect_left(starts, a)
+            while i < len(k) and k[i][0] < b:
+                ms[e["name"]] += (min(k[i][1], b) - k[i][0]) / 1e3
+                i += 1
+    return ms
+
+
+def region_times(fn, device, trace):
+    """Run fn under the profiler, save the chrome trace -> {region: total ms} (GPU kernel time on cuda,
+    CPU time of the label events on cpu)."""
     acts = [ProfilerActivity.CPU] + ([ProfilerActivity.CUDA] if device == "cuda" else [])
     with profile(activities=acts) as prof:
         fn()
-    if trace:
-        prof.export_chrome_trace(trace)
-    # CPU-side label events carry the device time of their child kernels; the GPU-side annotation copies are skipped
-    attr = "device_time_total" if device == "cuda" else "cpu_time_total"
+    prof.export_chrome_trace(trace)
+    if device == "cuda":
+        return gpu_region_ms(json.loads(Path(trace).read_text())["traceEvents"])
     ms = dict.fromkeys(REGIONS, 0.0)
     for e in prof.events():
-        if e.name in ms and e.device_type == DeviceType.CPU:
-            ms[e.name] += getattr(e, attr) / 1e3
+        if e.name in ms:
+            ms[e.name] += e.cpu_time_total / 1e3
     return ms
 
 
